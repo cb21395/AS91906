@@ -90,27 +90,45 @@ class GameWindow(arcade.Window):
         # Create the sprite lists
         self.player_list = arcade.SpriteList()
         self.bullet_list = arcade.SpriteList()
-
-        # Map name
-        map_name = ":resources:/tiled_maps/pymunk_test_map.json"
-
-        # Load in TileMap
-        tile_map = arcade.load_tilemap(map_name, SPRITE_SCALING_TILES)
-
-        # Pull the sprite layers out of the tile map
-        self.wall_list = tile_map.sprite_lists["Platforms"]
-        self.item_list = tile_map.sprite_lists["Dynamic Items"]
+        # Constants
+        TILE_SCALING = 0.5
         SPRITE_SCALING_PLAYER = 2.0
+        SPRITE_SCALING_TILES = 0.5  # You can adjust this if needed
+
+        # Set up file paths
         file_path = os.path.dirname(os.path.abspath(__file__))
+        map_path = os.path.join(file_path, "Level1.tmx")
         sprite_path = os.path.join(file_path, "knight.png")
 
-        # Load the texture
+        # Optional: Define layer options if needed
+        layer_options = {
+            "Platforms": {
+                "use_spatial_hash": True,
+            },
+            "Dynamic Items": {
+                "use_spatial_hash": False,
+            }
+        }
+
+        # Load the tilemap
+        self.tile_map = arcade.load_tilemap(
+            map_path,
+            scaling=TILE_SCALING,
+            layer_options=layer_options
+        )
+
+        # Pull the sprite layers out of the tile map
+        self.wall_list = self.tile_map.sprite_lists["Platforms"]
+        self.item_list = self.tile_map.sprite_lists["Dynamic Items"]
+
+        # Load the player sprite
         self.player_sprite = arcade.Sprite(sprite_path, SPRITE_SCALING_PLAYER)
-        # Set player location
+
+        # Set player location (assuming tile-based grid system)
         grid_x = 1
         grid_y = 1
-        self.player_sprite.center_x = SPRITE_SIZE * grid_x + SPRITE_SIZE / 2
-        self.player_sprite.center_y = SPRITE_SIZE * grid_y + SPRITE_SIZE / 2
+        self.player_sprite.center_x = grid_x * self.tile_map.tile_width * TILE_SCALING
+        self.player_sprite.center_y = grid_y * self.tile_map.tile_height * TILE_SCALING
         # Add to player sprite list
         self.player_list.append(self.player_sprite)
 
