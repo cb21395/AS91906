@@ -1,8 +1,3 @@
-"""
-Platformer Game
-
-python -m arcade.examples.platform_tutorial.14_multiple_levels
-"""
 import arcade
 import os
 
@@ -12,13 +7,12 @@ WINDOW_HEIGHT = 720
 WINDOW_TITLE = "Platformer"
 
 # Constants used to scale our sprites from their original size
-TILE_SCALING = 0.5
-COIN_SCALING = 0.5
+TILE_SCALING = 1
 
 # Movement speed of player, in pixels per frame
-PLAYER_MOVEMENT_SPEED = 5
-GRAVITY = 1
-PLAYER_JUMP_SPEED = 20
+PLAYER_MOVEMENT_SPEED = 3
+GRAVITY = 0.5
+PLAYER_JUMP_SPEED = 10
 
 
 class GameView(arcade.Window):
@@ -63,9 +57,6 @@ class GameView(arcade.Window):
 
         # Should we reset the score?
         self.reset_score = True
-
-        # Load sounds
-        self.collect_coin_sound = arcade.load_sound(":resources:sounds/coin1.wav")
         self.jump_sound = arcade.load_sound(":resources:sounds/jump1.wav")
         self.gameover_sound = arcade.load_sound(":resources:sounds/gameover1.wav")
 
@@ -77,12 +68,14 @@ class GameView(arcade.Window):
             }
         }
 
-        # Load our TileMap
+        map_path = os.path.join(os.path.dirname(__file__), f"Level1.tmx")
+
         self.tile_map = arcade.load_tilemap(
-            f":resources:tiled_maps/map2_level_{self.level}.json",
+            map_path,
             scaling=TILE_SCALING,
             layer_options=layer_options,
         )
+
 
         # Create our Scene Based on the TileMap
         self.scene = arcade.Scene.from_tilemap(self.tile_map)
@@ -93,13 +86,6 @@ class GameView(arcade.Window):
 
         # Then inside setup(), replace the texture loading with:
         self.player_texture = arcade.load_texture(PLAYER_SPRITE_PATH)
-
-        # Add Player Spritelist before "Foreground" layer. This will make the foreground
-        # be drawn after the player, making it appear to be in front of the Player.
-        # Setting before using scene.add_sprite allows us to define where the SpriteList
-        # will be in the draw order. If we just use add_sprite, it will be appended to the
-        # end of the order.
-        self.scene.add_sprite_list_after("Player", "Foreground")
 
         self.player_sprite = arcade.Sprite(self.player_texture)
         self.player_sprite.center_x = 128
@@ -161,25 +147,6 @@ class GameView(arcade.Window):
 
         # Move the player using our physics engine
         self.physics_engine.update()
-
-        # See if we hit any coins
-        coin_hit_list = arcade.check_for_collision_with_list(
-            self.player_sprite, self.scene["Coins"]
-        )
-
-        # Loop through each coin we hit (if any) and remove it
-        for coin in coin_hit_list:
-            # Remove the coin
-            coin.remove_from_sprite_lists()
-            arcade.play_sound(self.collect_coin_sound)
-            self.score += 75
-            self.score_text.text = f"Score: {self.score}"
-
-        if arcade.check_for_collision_with_list(
-            self.player_sprite, self.scene["Don't Touch"]
-        ):
-            arcade.play_sound(self.gameover_sound)
-            self.setup()
 
         # Check if the player got to the end of the level
         if self.player_sprite.center_x >= self.end_of_map:
