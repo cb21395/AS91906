@@ -13,7 +13,7 @@ TILE_SCALING = 1
 PLAYER_MOVEMENT_SPEED = 3
 GRAVITY = 0.5
 PLAYER_JUMP_SPEED = 10
-ARCHER_DASH_SPEED = 15
+ARCHER_DASH_SPEED = 10
 
 class GameView(arcade.Window):
     """
@@ -42,7 +42,8 @@ class GameView(arcade.Window):
     def setup(self):
         layer_options = {
             "Platforms": {"use_spatial_hash": True},
-            "Climbable": {"use_spatial_hash": True}
+            "Climbable": {"use_spatial_hash": True},
+            "Danger": {"use_spatial_hash": True}
         }
         
         map_path = os.path.join(os.path.dirname(__file__), f"Level1.tmx")
@@ -66,6 +67,7 @@ class GameView(arcade.Window):
         self.player_sprite = self.knight_sprite
         self.scene.add_sprite("Player", self.player_sprite)
         self.climbable_walls = self.scene["Climbable"]
+        self.danger = self.scene["Danger"]
         self.physics_engine = arcade.PhysicsEnginePlatformer(
             self.player_sprite, walls=self.scene["Platforms"], gravity_constant=GRAVITY
         )
@@ -109,8 +111,9 @@ class GameView(arcade.Window):
 
         # Camera follows player
         self.camera.position = self.player_sprite.position
+        if arcade.check_for_collision_with_list(self.player_sprite, self.danger):
+            self.setup()
 
-    
     def on_key_press(self, key, modifiers):
         touching_climbable = self.is_touching_climbable_wall()
         if key == arcade.key.ESCAPE:
