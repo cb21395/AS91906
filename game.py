@@ -2,8 +2,8 @@ import arcade
 import os
 
 # Constants
-WINDOW_WIDTH = 1280
-WINDOW_HEIGHT = 720
+WINDOW_WIDTH = 1920
+WINDOW_HEIGHT = 1024
 WINDOW_TITLE = "Platformer"
 
 # Constants used to scale our sprites from their original size
@@ -78,11 +78,6 @@ class GameView(arcade.Window):
         self.camera = arcade.Camera2D()
         self.gui_camera = arcade.Camera2D()
 
-        if self.reset_score:
-            self.score = 0
-        self.reset_score = True
-
-        self.score_text = arcade.Text(f"Score: {self.score}", x=0, y=5)
         self.background_color = arcade.csscolor.DARK_SLATE_BLUE
 
         self.end_of_map = (self.tile_map.width * self.tile_map.tile_width) * self.tile_map.scaling
@@ -93,7 +88,6 @@ class GameView(arcade.Window):
         self.camera.use()
         self.scene.draw()
         self.gui_camera.use()
-        self.score_text.draw()
 
     def on_update(self, delta_time):
         touching_climbable = self.is_touching_climbable_wall()
