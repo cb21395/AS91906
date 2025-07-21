@@ -32,6 +32,9 @@ class GameView(arcade.Window):
         self.gui_camera = None
         self.score = 0
         self.score_text = None
+        self.is_floating = False
+        self.float_duration = 1.5
+        self.float_speed = 3
         self.end_of_map = 0
         self.level = 1
         self.reset_score = True
@@ -80,7 +83,7 @@ class GameView(arcade.Window):
         self.reset_score = True
 
         self.score_text = arcade.Text(f"Score: {self.score}", x=0, y=5)
-        self.background_color = arcade.csscolor.CORNFLOWER_BLUE
+        self.background_color = arcade.csscolor.DARK_SLATE_BLUE
 
         self.end_of_map = (self.tile_map.width * self.tile_map.tile_width) * self.tile_map.scaling
         print(self.end_of_map)
@@ -94,7 +97,6 @@ class GameView(arcade.Window):
 
     def on_update(self, delta_time):
         touching_climbable = self.is_touching_climbable_wall()
-
         if self.is_climbing and touching_climbable:
             # Disable physics engine while climbing
             self.player_sprite.center_y += self.player_sprite.change_y
@@ -105,7 +107,6 @@ class GameView(arcade.Window):
             self.is_climbing = False
             self.physics_engine.gravity_constant = GRAVITY
             self.physics_engine.update()
-
         if self.player_sprite.center_y <= self.map_bottom:
             self.setup()
 
@@ -113,12 +114,16 @@ class GameView(arcade.Window):
         self.camera.position = self.player_sprite.position
         if arcade.check_for_collision_with_list(self.player_sprite, self.danger):
             self.setup()
+        if self.is_floating == True:
+            self.player_sprite.change_y = 0  # Cancel falling
+            self.player_sprite.center_y += 2.5  # Float upward
+            return  # Skip gravity and physics
 
     def on_key_press(self, key, modifiers):
         touching_climbable = self.is_touching_climbable_wall()
         if key == arcade.key.ESCAPE:
             self.setup()
-        if key == arcade.key.Q:
+        if key == arcade.key.Q and self.is_floating == False:
             self.switch_player_sprite()
         if key in [arcade.key.UP, arcade.key.W]:
             if self.physics_engine.can_jump():
@@ -134,7 +139,10 @@ class GameView(arcade.Window):
                 if self.player_sprite.change_x >= 0:
                     self.player_sprite.change_x = ARCHER_DASH_SPEED
                 elif self.player_sprite.change_x < 0:
-                    self.player_sprite.change_x = -ARCHER_DASH_SPEED     
+                    self.player_sprite.change_x = -ARCHER_DASH_SPEED
+            elif self.player_sprite == self.wizard_sprite and self.physics_engine.can_jump():
+                self.start_wizard_float()
+
         if key in [arcade.key.DOWN]:
             if touching_climbable:
                 self.is_climbing= False
@@ -188,7 +196,15 @@ class GameView(arcade.Window):
         if self.player_sprite == self.knight_sprite:
             return arcade.check_for_collision_with_list(self.player_sprite, self.climbable_walls)
         return False
+    def start_wizard_float(self):
+        self.is_floating = True
+        self.input_enabled = False
+        arcade.schedule(self.end_wizard_float, 1.5)
 
+    def end_wizard_float(self, delta_time):
+        self.is_floating = False
+        self.input_enabled = True
+        arcade.unschedule(self.end_wizard_float)
 
 
 
