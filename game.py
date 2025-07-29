@@ -1,7 +1,6 @@
 import arcade
 import os
 
-# Constants
 WINDOW_WIDTH = 1280
 WINDOW_HEIGHT = 780
 WINDOW_TITLE = "Platformer"
@@ -11,6 +10,8 @@ PLAYER_MOVEMENT_SPEED = 3
 GRAVITY = 0.5
 PLAYER_JUMP_SPEED = 11
 ARCHER_DASH_SPEED = 15
+MAX_HEALTH = 3
+DAMAGE_COOLDOWN = 1.0
 
 class Player:
     def __init__(self, characters_path):
@@ -21,7 +22,6 @@ class Player:
         self.archer_sprite = None
         self.wizard_sprite = None
         
-        # Animation properties
         self.walk_textures_by_character = {}
         self.walk_animation_index = 0
         self.climb_animation_index = 0
@@ -30,7 +30,6 @@ class Player:
         self.climb_movement_accumulator = 0
         self.movement_threshold = 20
         
-        # Ability states
         self.is_floating = False
         self.float_duration = 2
         self.float_timer = 0
@@ -43,7 +42,11 @@ class Player:
         self.dash_cooldown_timer = 0
         
         self.load_characters(characters_path)
-    
+        self.max_health = MAX_HEALTH
+        self.health = self.max_health
+        self.damage_timer = 0
+        self.is_invincible = False
+        
     def load_characters(self, characters_path):
         for filename in os.listdir(characters_path):
             if not filename.lower().endswith('.png'):
@@ -126,6 +129,12 @@ class Player:
         self.climb_movement_accumulator = 0
     
     def update_abilities(self, delta_time):
+        if self.is_invincible:
+            self.damage_timer += delta_time
+            if self.damage_timer >= DAMAGE_COOLDOWN:
+                self.is_invincible = False
+                self.damage_timer = 0
+        
         if self.is_floating:
             self.float_timer += delta_time
             if self.float_timer >= self.float_duration:
@@ -149,18 +158,25 @@ class Player:
         name = self.sprite.character_name
         textures = self.walk_textures_by_character.get(name)
         
+        if self.is_invincible:
+            flash_rate = 10
+            if int(self.damage_timer * flash_rate) % 2:
+                self.sprite.alpha = 128
+            else:
+                self.sprite.alpha = 255
+        else:
+            self.sprite.alpha = 255
+        
         if is_climbing and touching_climbable and self.sprite == self.knight_sprite:
             prev_y = self.sprite.center_y
             
             if self.sprite.change_y > 0:
-                # Much tighter check - only look a few pixels ahead
                 test_y = self.sprite.center_y + self.sprite.height // 2 + 2
                 
                 can_climb_higher = False
                 for wall in climbable_walls:
-                    # More precise collision check for 32x32 tiles
-                    if (wall.left < self.sprite.center_x < wall.right and
-                        wall.bottom < test_y < wall.top):
+                    if (wall.left <= self.sprite.center_x <= wall.right and
+                        wall.bottom <= test_y <= wall.top):
                         can_climb_higher = True
                         break
                 
@@ -207,8 +223,7 @@ class Player:
         if self.is_floating:
             self.sprite.change_y = 0
             self.sprite.center_y += 2.5
-            return True
-        
+                   
         if self.archer_dashing:
             self.sprite.change_y = 0
             if self.sprite.change_x >= 0:
@@ -238,7 +253,18 @@ class Player:
         self.sprite.center_y = 128
         self.sprite.change_x = 0
         self.sprite.change_y = 0
-
+        
+    def take_damage(self):
+        if not self.is_invincible:
+            self.health -= 1
+            self.is_invincible = True
+            self.damage_timer = 0
+            
+            if self.health <= 0:
+                self.reset_position()
+                self.health = self.max_health
+                self.is_invincible = False
+                self.damage_timer = 0
 
 class GameView(arcade.Window):
     def __init__(self):
@@ -257,8 +283,10 @@ class GameView(arcade.Window):
         self.climbable_walls = None
         self.map_bottom = 0
         self.physics_engine = None
-        
         self.show_instructions = False
+        self.health_bar_list = arcade.SpriteList()
+        self.heart_full_texture = None
+        self.heart_empty_texture = None
 
     def setup(self):
         layer_options = {
@@ -289,14 +317,56 @@ class GameView(arcade.Window):
         self.gui_camera = arcade.Camera2D()
         self.background_color = arcade.csscolor.DARK_SLATE_BLUE
         self.end_of_map = (self.tile_map.width * self.tile_map.tile_width) * self.tile_map.scaling
+        
+        self.setup_health_bar()
+
+    def setup_health_bar(self):
+        self.health_bar_list = arcade.SpriteList()
+        heart_size = 30
+        heart_spacing = 35
+        start_x = 20
+        start_y = WINDOW_HEIGHT - 40
+        
+        assets_path = os.path.join(os.path.dirname(__file__), "Assets")
+        self.heart_full_texture = arcade.load_texture(os.path.join(assets_path, "heart_full.png"))
+        self.heart_empty_texture = arcade.load_texture(os.path.join(assets_path, "heart_empty.png"))
+        
+        for i in range(self.player.max_health):
+            x = start_x + (i * heart_spacing)
+            
+            full_heart = arcade.Sprite()
+            full_heart.texture = self.heart_full_texture
+            full_heart.center_x = x
+            full_heart.center_y = start_y
+            full_heart.scale = heart_size / self.heart_full_texture.width
+            full_heart.heart_index = i
+            full_heart.is_full = True
+            
+            empty_heart = arcade.Sprite()
+            empty_heart.texture = self.heart_empty_texture
+            empty_heart.center_x = x
+            empty_heart.center_y = start_y
+            empty_heart.scale = heart_size / self.heart_empty_texture.width
+            empty_heart.heart_index = i
+            empty_heart.is_full = False
+            
+            self.health_bar_list.append(full_heart)
+            self.health_bar_list.append(empty_heart)
+
+    def update_health_display(self):
+        for sprite in self.health_bar_list:
+            if hasattr(sprite, 'heart_index'):
+                if sprite.is_full:
+                    sprite.visible = sprite.heart_index < self.player.health
+                else:
+                    sprite.visible = sprite.heart_index >= self.player.health
 
     def draw_instructions(self):
         if not self.show_instructions:
             return
             
-        # Draw background rectangle
         arcade.draw_lrbt_rectangle_filled(
-            10, 400, WINDOW_HEIGHT - 350, WINDOW_HEIGHT - 10,
+            10, 600, WINDOW_HEIGHT - 350, WINDOW_WIDTH - 10,
             (0, 0, 0, 180)
         )
         
@@ -307,8 +377,8 @@ class GameView(arcade.Window):
             "Q - Switch Characters",
             "",
             "KNIGHT - Space near walls to climb",
-            "ARCHER - Space to dash",
-            "WIZARD - Space while jumping to float",
+            "ARCHER - Space to dash (Careful, it goes far)",
+            "WIZARD - Space while grounded to float",
             "",
             "ESC - Reset position",
             "I - Toggle instructions"
@@ -332,13 +402,17 @@ class GameView(arcade.Window):
         self.scene.draw()
         
         self.gui_camera.use()
+        self.health_bar_list.draw()
         self.draw_instructions()
 
     def on_update(self, delta_time):
         self.player.update_abilities(delta_time)
         self.camera.position = self.player.sprite.position
+        
         if arcade.check_for_collision_with_list(self.player.sprite, self.danger):
-            self.player.reset_position()
+            self.player.take_damage()
+            self.update_health_display()
+        
         touching_climbable = self.player.is_touching_climbable_wall(self.climbable_walls)
         if self.player.update_movement():
             return
@@ -352,9 +426,8 @@ class GameView(arcade.Window):
         self.player.update_animations(delta_time, self.player.is_climbing, touching_climbable, self.climbable_walls)
 
         if self.player.sprite.center_y <= self.map_bottom:
-            print("Player Sprite's center made contact with bottom of map")
-            print(self.player.sprite.center_y)
-            self.player.reset_position()
+            self.player.take_damage()
+            self.update_health_display()
 
     def on_key_press(self, key, modifiers):
         if key == arcade.key.I:
@@ -380,7 +453,6 @@ class GameView(arcade.Window):
             if touching_climbable:
                 self.player.is_climbing = True
                 self.player.sprite.change_y = PLAYER_MOVEMENT_SPEED
-                # Set climbing animation to frame 1 when starting to climb
                 climb_textures = self.player.walk_textures_by_character.get("knight", {}).get("climb", [])
                 if climb_textures and len(climb_textures) > 0:
                     self.player.climb_animation_index = 0
@@ -413,7 +485,6 @@ class GameView(arcade.Window):
         self.physics_engine = arcade.PhysicsEnginePlatformer(
             self.player.sprite, walls=self.scene["Platforms"], gravity_constant=GRAVITY
         )
-
 
 def main():
     window = GameView()
