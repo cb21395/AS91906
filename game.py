@@ -693,23 +693,14 @@ class Player:
         """
         Creates a fire attack for the wizard character.
         """
-        # Check if wizard attack textures are loaded
-        if "wizard" not in self.attack_textures_by_character:
-            print("Warning: Wizard attack textures not loaded")
-            return None
             
         # Get fire textures (tuple of two textures for animation)
         fire_textures = self.attack_textures_by_character["wizard"][self.facing_direction]
-        
-        # Debug print to check texture loading
-        print(f"Fire textures type: {type(fire_textures)}")
-        print(f"Fire textures content: {fire_textures}")
         
         # Handle the tuple of textures properly
         if isinstance(fire_textures, tuple) and len(fire_textures) >= 2:
             fire = Fire(fire_textures[0], fire_textures[1], scale=ATTACK_SCALING)
         else:
-            print("Error: Fire textures not in expected tuple format")
             return None
         
         # Position fire with larger offset and slight vertical adjustment
@@ -717,8 +708,6 @@ class Player:
         offset_y = -5
         fire.center_x = self.sprite.center_x + offset_x
         fire.center_y = self.sprite.center_y + offset_y
-        
-        print(f"Fire created at position: ({fire.center_x}, {fire.center_y})")
         
         return fire
 
@@ -1034,11 +1023,6 @@ class GameView(arcade.Window):
         
         # Get enemy configuration for current level
         enemy_configs = LEVEL_ENEMIES.get(self.level, [])
-        
-        if not enemy_configs:
-            print(
-            f"Warning: No enemy configuration found for level {self.level}")
-            return
         
         # Create each enemy from configuration data
         for (monster_file, x_pos, y_pos, boundary_left, boundary_right,
