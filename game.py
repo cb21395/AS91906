@@ -787,9 +787,9 @@ class Enemy(arcade.Sprite):
         
         # Handle horizontal boundary collisions (reverse direction 
         # when hitting walls)
-        if self.center_x >= self.boundary_right and self.change_x > 0:
+        if self.center_x >= self.boundary_right and self.change_x > 0:  
             self.change_x = -abs(self.speed_x)  # Move left
-        elif self.center_x <= self.boundary_left and self.change_x < 0:
+        elif self.center_x <= self.boundary_left and self.change_x < 0: 
             self.change_x = abs(self.speed_x)   # Move right
             
         # Handle vertical boundary collisions
@@ -1028,7 +1028,7 @@ class GameView(arcade.Window):
         enemy_configs = LEVEL_ENEMIES.get(self.level, [])
         
         # Create each enemy from configuration data
-        for (monster_file, x_pos, y_pos, boundary_left, boundary_right,
+        for (monster_file, x_pos, y_pos, boundary_left, boundary_right, 
         boundary_bottom, boundary_top, speed_x, speed_y) in enemy_configs:
             enemy = Enemy(os.path.join(assets_path, monster_file))
             
@@ -1254,7 +1254,7 @@ class GameView(arcade.Window):
         self.wizard_fires.update(delta_time)
         
         # Handle level progression (levels 1-2 have exits, 
-        # level 3 requires killing all enemies)
+        # lmevel 3 requires killing all enemies)
         if self.level < 3 and arcade.check_for_collision_with_list(
         self.player.sprite, self.exits):
             self.switch_to_next_level()
