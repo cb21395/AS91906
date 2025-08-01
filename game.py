@@ -33,6 +33,9 @@ DAMAGE_COOLDOWN = 1.0
 ARROW_SPEED = 8
 FIRE_DURATION = 3.0
 ATTACK_COOLDOWN = 0.5
+Knight = "knight"
+Wizard = "wizard"
+Archer = "archer"
 
 # Enemy configuration - maps enemy sprites to their health values
 ENEMY_HP = {
@@ -278,11 +281,11 @@ class Player:
 
         # Store references to specific character sprites for easy access
         for sprite in self.character_sprites:
-            if sprite.character_name == "knight":
+            if sprite.character_name == Knight:
                 self.knight_sprite = sprite
-            elif sprite.character_name == "archer":
+            elif sprite.character_name == Archer:
                 self.archer_sprite = sprite
-            elif sprite.character_name == "wizard":
+            elif sprite.character_name == Wizard:
                 self.wizard_sprite = sprite
 
         # Load climbing textures (knight-specific)
@@ -322,7 +325,7 @@ class Player:
         character_path = os.path.join(os.path.dirname(__file__),
         "characters", character_name)
         
-        if character_name == "knight":
+        if character_name == Knight:
             # Knight has single attack texture
             attack_path = os.path.join(character_path, 
             "knight_attack1.png")
@@ -333,7 +336,7 @@ class Player:
                     "right": right_texture,
                     "left": left_texture
                 }
-        elif character_name == "archer":
+        elif character_name == Archer:
             # Archer has single attack texture (bow drawing)
             attack_path = os.path.join(character_path,
             "archer_attack1.png")
@@ -344,7 +347,7 @@ class Player:
                     "right": right_texture,
                     "left": left_texture
                 }
-        elif character_name == "wizard":
+        elif character_name == Wizard:
             # Wizard has two attack textures for fire animation
             attack_path1 = os.path.join(character_path, 
             "wizard_attack1.png")
@@ -371,17 +374,17 @@ class Player:
         """
         climbing_textures = []
         for i in range(1, 3):
-            climb_path = os.path.join(characters_path, "knight",
+            climb_path = os.path.join(characters_path, Knight,
             f"knight_climbing{i}.png")
             if os.path.exists(climb_path):
                 climbing_texture = arcade.load_texture(climb_path)
                 climbing_textures.append(climbing_texture)
         
         # Add climbing textures to knight's texture dictionary
-        if "knight" not in self.walk_textures_by_character:
-            self.walk_textures_by_character["knight"] = {"right": [],
+        if Knight not in self.walk_textures_by_character:
+            self.walk_textures_by_character[Knight] = {"right": [],
             "left": []}
-        self.walk_textures_by_character["knight"]["climb"] = climbing_textures
+        self.walk_textures_by_character[Knight]["climb"] = climbing_textures
     
     def switch_character(self):
         """
@@ -518,7 +521,7 @@ class Player:
             
             # Update climbing animation based on vertical movement
             climb_textures = (
-            self.walk_textures_by_character.get("knight", {}).get("climb", []))
+            self.walk_textures_by_character.get(Knight, {}).get("climb", []))
             if climb_textures:
                 vertical_movement = abs(self.sprite.center_y - prev_y)
                 self.climb_movement_accumulator += vertical_movement
@@ -633,11 +636,11 @@ class Player:
         character_name = self.sprite.character_name
         
         # Create appropriate attack based on character
-        if character_name == "knight":
+        if character_name == Knight:
             return self.create_knight_slash()
-        elif character_name == "archer":
+        elif character_name == Archer:
             return self.create_archer_arrow()
-        elif character_name == "wizard":
+        elif character_name == Wizard:
             return self.create_wizard_fire()
             
         return None
@@ -646,10 +649,10 @@ class Player:
         """
         Create a knight slash attack sprite.
         """
-        if "knight" not in self.attack_textures_by_character:
+        if Knight not in self.attack_textures_by_character:
             return None
             
-        slash_texture = (self.attack_textures_by_character["knight"]
+        slash_texture = (self.attack_textures_by_character[Knight]
         [self.facing_direction])
         slash = KnightSlash(slash_texture, scale=ATTACK_SCALING)
         
@@ -665,11 +668,11 @@ class Player:
         Creates an arrow projectile for the archer character.
         """
         # Check if archer attack textures are loaded
-        if "archer" not in self.attack_textures_by_character:
+        if Archer not in self.attack_textures_by_character:
             return None
             
         # Get the appropriate arrow texture based on facing direction
-        arrow_texture = (self.attack_textures_by_character["archer"]
+        arrow_texture = (self.attack_textures_by_character[Archer]
         [self.facing_direction])
         arrow = Arrow(arrow_texture, scale=ATTACK_SCALING)
         
@@ -695,7 +698,7 @@ class Player:
         """
             
         # Get fire textures (tuple of two textures for animation)
-        fire_textures = self.attack_textures_by_character["wizard"][self.facing_direction]
+        fire_textures = self.attack_textures_by_character[Wizard][self.facing_direction]
         
         # Handle the tuple of textures properly
         if isinstance(fire_textures, tuple) and len(fire_textures) >= 2:
@@ -1398,7 +1401,7 @@ class GameView(arcade.Window):
                 self.player.sprite.change_y = PLAYER_MOVEMENT_SPEED
                 # Set climbing animation
                 climb_textures = self.player.walk_textures_by_character.get(
-                "knight", {}).get("climb", [])
+                Knight, {}).get("climb", [])
                 if climb_textures and len(climb_textures) > 0:
                     self.player.climb_animation_index = 0
                     self.player.sprite.texture = climb_textures[0]
@@ -1421,11 +1424,11 @@ class GameView(arcade.Window):
                 # Add attack to appropriate sprite
                 # list based on character
                 character_name = self.player.sprite.character_name
-                if character_name == "knight":
+                if character_name == Knight:
                     self.knight_attacks.append(attack)
-                elif character_name == "archer":
+                elif character_name == Archer:
                     self.archer_arrows.append(attack)
-                elif character_name == "wizard":
+                elif character_name == Wizard:
                     self.wizard_fires.append(attack)
                     
     def on_key_release(self, key, modifiers):
